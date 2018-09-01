@@ -186,7 +186,6 @@ $(document).on("click", "#btnGenerate", function() {
       ]);
     }
   }
-  console.table(generatedData);
 
   var bom = new Uint8Array([0xef, 0xbb, 0xbf]);
 
@@ -201,13 +200,9 @@ $(document).on("click", "#btnGenerate", function() {
   });
 
   if (window.navigator.msSaveBlob) {
-    console.log("hoge true");
     window.navigator.msSaveBlob(blob, "GomiCalendar.csv");
     window.navigator.msSaveOrOpenBlob(blob, "GomiCalendar.csv");
   } else {
-    console.log("hoge false");
-    console.log(blob);
-
     var $downloadLink = $("#downloadLink");
     $downloadLink.attr("href", window.URL.createObjectURL(blob));
     $downloadLink[0].click();
