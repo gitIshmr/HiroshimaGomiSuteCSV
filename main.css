@@ -1,0 +1,16 @@
+.margin-b {
+  margin-bottom: 30px;
+}
+.margin-t-b {
+  margin: 30px 0;
+}
+#downloadLink {
+  display: none;
+}
+button:disabled {
+  background-color: #eee !important;
+  border: #eee !important;
+}
+button:disabled:hover {
+  opacity: initial !important;
+}
