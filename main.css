@@ -4,6 +4,13 @@
 .margin-t-b {
   margin: 30px 0;
 }
+note {
+  margin-left: 1em;
+  text-indent: -1em;
+}
+note:before {
+  content:"※";
+}
 #downloadLink {
   display: none;
 }
