@@ -15,7 +15,7 @@
     <script language="javascript">
         let userAgent = window.navigator.userAgent.toLowerCase();
         if ( userAgent.indexOf( 'msie' ) !== -1 || userAgent.indexOf( 'trident' ) !== -1 ) {
-            if(window.confirm('当サイトはInternet Explorerに対応しておりません。本サイトを閲覧するためにはGoogle Chrome,Mozilla Firefox等のモダンなブラウザをご利用ください(無料)。対応ブラウザのダウンロードページに移動しますか？')==true) {
+            if(window.confirm('当サイトはInternet Explorerに対応しておりません。本サイトを閲覧するためにはGoogle Chrome,Mozilla Firefox等のモダンブラウザをご利用ください(無料)。対応ブラウザのダウンロードページに移動しますか？')==true) {
                 location.href="https://www.google.com/intl/ja/chrome/";
             }
         } 
@@ -34,7 +34,9 @@
             </div>
             <hr class="margin-b">
         </header>
-        <p>広島市環境局が公開している家庭ごみ収集日程表のcsvデータからお住まいの地域のデータをダウンロードしていただき、以下のフォームからアップロードするだけでGoogle Calendar に登録できる形式に変換できます。
+        <p>広島市環境局が公開している家庭ごみ収集日程表のcsvデータからお住まいの地域のデータをダウンロードし、以下のフォームからアップロードするだけでGoogle Calendar に登録できる形式に変換できます。
+        </p>
+        <p class="note">Android等の環境では、ZIPファイル展開後のファイル名が文字化けする場合があります。WindowsなどのPC環境で実行することをお勧めします。
         </p>
         <div class="card">
             <h4>Step1：必要なデータのダウンロード・アップロード</h4>
@@ -104,9 +106,9 @@
                 <p>
                     このツールは、広島市環境局が公開しているデータをもとにGoogle Calendar用のファイルを生成します。<br> 上記データの公開については下記のサイトをご覧ください。
                     <ul>
-                        <li>配布元サイト：<a href="https://www.city.hiroshima.lg.jp/site/opendata/13797.html">家庭ごみ収集日程表</a>
+                        <li>配布元サイト：<a href="https://hiroshima-opendata.dataeye.jp/resources/9971">家庭ごみ収集日程表</a>
                         </li>
-                        <li>広島市オープンデータ利用規約：<a href="https://www.city.hiroshima.lg.jp/soshiki/16/11807.html">広島市オープンデータ利用規約</a>
+                        <li>広島広域都市圏・広島県オープンデータポータルサイト利用規約：<a href="https://hiroshima-opendata.dataeye.jp/pages/terms">広島広域都市圏・広島県オープンデータポータルサイト利用規約</a>
                         </li>
                         <li>著作権表示の規定：<a href="https://creativecommons.org/licenses/by/4.0/legalcode.ja ">CC－BY(表示)の規定</a>
                         </li>
