@@ -4,11 +4,11 @@
 .margin-t-b {
   margin: 30px 0;
 }
-note {
+.note {
   margin-left: 1em;
   text-indent: -1em;
 }
-note:before {
+.note:before {
   content:"※";
 }
 #downloadLink {
