@@ -1,0 +1,43 @@
+name: Update CSV Data
+
+on:
+  schedule:
+    # JST 02:00 = UTC 17:00 (前日)
+    - cron: '0 17 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-csv:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Download CSV ZIP
+        run: |
+          curl -sSL "https://hiroshima-opendata.dataeye.jp/resource_download/9971" -o data.zip
+
+      - name: Extract ZIP and Convert CSV to UTF-8
+        run: |
+          python scripts/process_data.py
+          rm -f data.zip
+
+      - name: Commit and Push if changes exist
+        run: |
+          git config local user.name "github-actions[bot]"
+          git config local user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/csv/
+          if ! git diff --staged --quiet; then
+            git commit -m "Update garbage collection CSV data (UTF-8)"
+            git push
+          else
+            echo "No changes detected in CSV data."
+          fi

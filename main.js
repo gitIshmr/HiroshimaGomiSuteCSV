@@ -1,210 +1,264 @@
-function checkAPISupport() {
-  // File API サポートの確認.
-  if (!(window.File && window.FileReader && window.FileList && window.Blob)) {
-    alert(
-      "ブラウザがFile APIをサポートしていないようです。最新バージョンのGoogle Chromeなどのブラウザを使用してください。"
+/**
+ * HiroshimaGomiSute - iCalendar (.ics) Generator
+ * ECMAScript 2025/2026 Modern Vanilla JS Implementation
+ */
+
+/** @type {Readonly<Record<string, { name: string, katei: string, ogata: string, chomei: string }>>} */
+const WARD_MAP = Object.freeze({
+  naka: { name: "中区", katei: "1-1家庭ごみ収集日（中区）.csv", ogata: "1-1大型ごみ収集日（中区）.csv", chomei: "3-1中区町名.csv" },
+  higashi: { name: "東区", katei: "1-2家庭ごみ収集日（東区）.csv", ogata: "1-2大型ごみ収集日（東区）.csv", chomei: "3-2東区町名.csv" },
+  minami: { name: "南区", katei: "1-3家庭ごみ収集日（南区）.csv", ogata: "1-3大型ごみ収集日（南区）.csv", chomei: "3-3南区町名.csv" },
+  nishi: { name: "西区", katei: "1-4家庭ごみ収集日（西区）.csv", ogata: "1-4大型ごみ収集日（西区）.csv", chomei: "3-4西区町名.csv" },
+  asaminami: { name: "安佐南区", katei: "1-5家庭ごみ収集日（安佐南区）.csv", ogata: "1-5大型ごみ収集日（安佐南区）.csv", chomei: "3-5安佐南区町名.csv" },
+  asakita: { name: "安佐北区", katei: "1-6家庭ごみ収集日（安佐北区）.csv", ogata: "1-6大型ごみ収集日（安佐北区）.csv", chomei: "3-6安佐北区町名.csv" },
+  aki: { name: "安芸区", katei: "1-7家庭ごみ収集日（安芸区）.csv", ogata: "1-7大型ごみ収集日（安芸区）.csv", chomei: "3-7安芸区町名.csv" },
+  saeki: { name: "佐伯区", katei: "1-8家庭ごみ収集日（佐伯区）.csv", ogata: "1-8大型ごみ収集日（佐伯区）.csv", chomei: "3-8佐伯区町名.csv" }
+});
+
+const dataStore = {
+  kateigomiData: null,
+  OgatagomiData: null,
+  ChomeiData: null
+};
+
+/**
+ * CSVテキストを2次元配列にパースする
+ * @param {string} text 
+ * @returns {string[][]}
+ */
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/);
+  const result = [];
+  for (const line of lines) {
+    if (line === "") break;
+    result.push(line.split(",").map((cell) => cell.replaceAll(/["#]/g, "")));
+  }
+  return result;
+}
+
+/**
+ * CSVファイルを非同期取得する
+ * @param {string} fileName 
+ * @returns {Promise<string[][]>}
+ */
+async function fetchCSV(fileName) {
+  const response = await fetch(`data/csv/${encodeURIComponent(fileName)}`);
+  if (!response.ok) {
+    throw new Error(`Failed to load ${fileName}: ${response.status} ${response.statusText}`);
+  }
+  const text = await response.text();
+  return parseCSV(text);
+}
+
+/**
+ * 日付文字列から DTSTART (YYYYMMDD) と DTEND (翌日 YYYYMMDD) を算出
+ * @param {string} dateStr 
+ * @returns {{ dtstart: string, dtend: string } | null}
+ */
+function getStartAndEndDates(dateStr) {
+  const cleanStr = dateStr.replaceAll(/[^0-9]/g, "");
+  if (cleanStr.length !== 8) return null;
+
+  const year = Number.parseInt(cleanStr.slice(0, 4), 10);
+  const month = Number.parseInt(cleanStr.slice(4, 6), 10) - 1;
+  const day = Number.parseInt(cleanStr.slice(6, 8), 10);
+
+  const startDate = new Date(year, month, day);
+  const endDate = new Date(year, month, day + 1);
+
+  const formatDate = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const date = String(d.getDate()).padStart(2, "0");
+    return `${y}${m}${date}`;
+  };
+
+  return {
+    dtstart: formatDate(startDate),
+    dtend: formatDate(endDate)
+  };
+}
+
+/**
+ * イベント情報配列から iCalendar (.ics) テキスト形式文字列を生成する
+ * @param {Array<{ summary: string, dateStr: string }>} events 
+ * @returns {string}
+ */
+function generateICS(events) {
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//HiroshimaGomiSute//JA",
+    "CALSCALE:GREGORIAN"
+  ];
+
+  for (const evt of events) {
+    const dates = getStartAndEndDates(evt.dateStr);
+    if (!dates) continue;
+
+    lines.push(
+      "BEGIN:VEVENT",
+      `DTSTART;VALUE=DATE:${dates.dtstart}`,
+      `DTEND;VALUE=DATE:${dates.dtend}`,
+      `SUMMARY:${evt.summary}`,
+      "DESCRIPTION:ごみ出しカレンダー",
+      "TRANSP:TRANSPARENT",
+      "END:VEVENT"
     );
   }
+
+  lines.push("END:VCALENDAR");
+  return `${lines.join("\r\n")}\r\n`;
 }
 
-function getDataFromCSV(evt, dataName) {
-  return new Promise(function(resolve, reject) {
-    var csvFile = evt.target.files[0];
+/**
+ * 区の選択肢が変更された時のハンドラー
+ * @param {Event} event 
+ */
+async function handleWardChange(event) {
+  const selectWard = /** @type {HTMLSelectElement} */ (event.target);
+  const selectChomei = /** @type {HTMLSelectElement} */ (document.querySelector("#slctChomei"));
+  const btnGenerate = /** @type {HTMLButtonElement} */ (document.querySelector("#btnGenerate"));
 
-    var reader = new FileReader();
+  const wardKey = selectWard.value;
 
-    reader.onerror = function() {
-      alert("" + dataName + "のファイル読み取りに失敗しました");
-      reject();
-    };
+  selectChomei.disabled = true;
+  btnGenerate.disabled = true;
+  selectChomei.replaceChildren();
 
-    reader.onload = function() {
-      // 行単位の配列
-      var arryLine = reader.result.split("\n");
-      // 二次元配列
-      var arryResult = [];
+  if (!wardKey || !(wardKey in WARD_MAP)) {
+    selectChomei.options.add(new Option("先に区を選択してください", ""));
+    return;
+  }
 
-      for (var i = 0; i < arryLine.length; i++) {
-        //空白行で終了
-        if (arryLine[i] == "") {
-          break;
-        }
+  selectChomei.options.add(new Option("データを読み込み中...", ""));
 
-        //","ごとに配列化
-        arryResult[i] = arryLine[i].split(",");
-        for (let j = 0; j < arryResult[i].length; j++) {
-          arryResult[i][j] = arryResult[i][j].replace(/"|#/g, "");
-        }
+  try {
+    const info = WARD_MAP[wardKey];
+    const [katei, ogata, chomei] = await Promise.all([
+      fetchCSV(info.katei),
+      fetchCSV(info.ogata),
+      fetchCSV(info.chomei)
+    ]);
+
+    dataStore.kateigomiData = katei;
+    dataStore.OgatagomiData = ogata;
+    dataStore.ChomeiData = chomei;
+
+    selectChomei.replaceChildren();
+    selectChomei.options.add(new Option("町名を選択してください", ""));
+
+    for (let i = 1; i < chomei.length; i++) {
+      const row = chomei[i];
+      if (row?.[0] && row?.[2]) {
+        selectChomei.options.add(new Option(row[0], row[2]));
       }
-      resolve(arryResult);
-    };
+    }
 
-    // ファイル読み取りを実行
-    reader.readAsText(csvFile, "Shift_JIS");
-  });
-}
-
-function controlActivity(flg) {
-  var valKateigomi = $("#inptKateigomi").val();
-  var valOgatagomi = $("#inptOgatagomi").val();
-  var valChomei = $("#inptChomei").val();
-
-  if (
-    valKateigomi !== undefined &&
-    valKateigomi !== "" &&
-    valKateigomi !== null &&
-    (valOgatagomi !== undefined &&
-      valOgatagomi !== "" &&
-      valOgatagomi !== null) &&
-    (valChomei !== undefined && valChomei !== "" && valChomei !== null)
-  ) {
-    $("#btnUpload").prop("disabled", false);
-  } else {
-    $("#btnUpload").prop("disabled", true);
-  }
-
-  $("#slctChomei").prop("disabled", !flg);
-
-  if ($("#slctChomei").val() === "") {
-    $("#btnGenerate").prop("disabled", false);
-  } else {
-    $("#btnGenerate").prop("disabled", !flg);
+    selectChomei.disabled = false;
+  } catch (err) {
+    console.error("CSV loading error:", err);
+    alert("ごみ収集日データの読み込みに失敗しました。時間をおいて再度お試しください。");
+    selectChomei.replaceChildren();
+    selectChomei.options.add(new Option("データの読み込みに失敗しました", ""));
   }
 }
 
-var HIROSHIMAGOMISUTECSV = {};
+/**
+ * 町名の選択肢が変更された時のハンドラー
+ * @param {Event} event 
+ */
+function handleChomeiChange(event) {
+  const selectChomei = /** @type {HTMLSelectElement} */ (event.target);
+  const btnGenerate = /** @type {HTMLButtonElement} */ (document.querySelector("#btnGenerate"));
+  btnGenerate.disabled = !selectChomei.value;
+}
 
-HIROSHIMAGOMISUTECSV.kateigomiData = null;
-HIROSHIMAGOMISUTECSV.OgatagomiData = null;
-HIROSHIMAGOMISUTECSV.ChomeiData = null;
+/**
+ * カレンダー生成・ダウンロードボタンのクリックハンドラー
+ */
+function handleGenerate() {
+  const selectChomei = /** @type {HTMLSelectElement} */ (document.querySelector("#slctChomei"));
+  const selectedNum = selectChomei.value;
 
-$(window).on("load", function() {
-  checkAPISupport();
-  HIROSHIMAGOMISUTECSV.kateigomiData = null;
-  HIROSHIMAGOMISUTECSV.OgatagomiData = null;
-  HIROSHIMAGOMISUTECSV.ChomeiData = null;
-  $("#inptKateigomi").val(null);
-  $("#inptOgatagomi").val(null);
-  $("#inptChomei").val(null);
-  controlActivity(false);
-  $("#downloadLink").attr("href", "#");
-});
-
-$("#inptKateigomi").on("change", async function(event) {
-  $("#slctChomei").empty();
-  $("#btnGenerate").prop("disabled", true);
-  controlActivity(false);
-  HIROSHIMAGOMISUTECSV.kateigomiData = await getDataFromCSV(
-    event,
-    "家庭ごみ収集日"
-  );
-});
-
-$("#inptOgatagomi").on("change", async function(event) {
-  $("#slctChomei").empty();
-  $("#btnGenerate").prop("disabled", true);
-  controlActivity(false);
-  HIROSHIMAGOMISUTECSV.OgatagomiData = await getDataFromCSV(
-    event,
-    "大型ごみ収集日"
-  );
-});
-
-$("#inptChomei").on("change", async function(event) {
-  $("#slctChomei").empty();
-  $("#btnGenerate").prop("disabled", true);
-  controlActivity(false);
-  HIROSHIMAGOMISUTECSV.ChomeiData = await getDataFromCSV(event, "町名");
-});
-
-$("#btnUpload").on("click", function() {
-  controlActivity(true);
-  $("#slctChomei").empty();
-  var $option;
-  for (let i = 1; i < HIROSHIMAGOMISUTECSV.ChomeiData.length; i++) {
-    $option = $("<option>")
-      .val(HIROSHIMAGOMISUTECSV.ChomeiData[i][2])
-      .text(HIROSHIMAGOMISUTECSV.ChomeiData[i][0]);
-    $("#slctChomei").append($option);
+  if (!selectedNum || !dataStore.kateigomiData || !dataStore.OgatagomiData) {
+    return;
   }
-});
 
-$(document).on("click", "#btnGenerate", function() {
-  var selectedNum = $("#slctChomei").val();
-  var generatedData = [["Subject", "Start Date", "All Day Event"]];
-  var rowVal = 0;
-  for (let i = 0; i < HIROSHIMAGOMISUTECSV.kateigomiData[0].length; i++) {
-    if (
-      parseInt(HIROSHIMAGOMISUTECSV.kateigomiData[0][i], 10) ===
-      parseInt(selectedNum, 10)
-    ) {
+  const events = [];
+
+  // 家庭ごみデータ抽出
+  let rowVal = 0;
+  const kateiHeader = dataStore.kateigomiData[0];
+  for (let i = 0; i < kateiHeader.length; i++) {
+    if (Number.parseInt(kateiHeader[i], 10) === Number.parseInt(selectedNum, 10)) {
       rowVal = i;
       break;
     }
   }
-  var gomiName = "";
-  for (let j = 1; j < HIROSHIMAGOMISUTECSV.kateigomiData.length; j++) {
-    if (HIROSHIMAGOMISUTECSV.kateigomiData[j][rowVal] !== "") {
-      gomiName = HIROSHIMAGOMISUTECSV.kateigomiData[j][rowVal];
+
+  for (let j = 1; j < dataStore.kateigomiData.length; j++) {
+    const row = dataStore.kateigomiData[j];
+    const dateStr = row[0];
+    const gomiName = row[rowVal];
+    if (gomiName) {
       if (gomiName === "リプラ") {
-        generatedData.push([
-          "ペットボトル",
-          HIROSHIMAGOMISUTECSV.kateigomiData[j][0],
-          "TRUE"
-        ]);
+        events.push({ summary: "ペットボトル", dateStr });
       }
       if (gomiName === "資源") {
-        generatedData.push([
-          "有害",
-          HIROSHIMAGOMISUTECSV.kateigomiData[j][0],
-          "TRUE"
-        ]);
+        events.push({ summary: "有害", dateStr });
       }
-      generatedData.push([
-        gomiName,
-        HIROSHIMAGOMISUTECSV.kateigomiData[j][0],
-        "TRUE"
-      ]);
+      events.push({ summary: gomiName, dateStr });
     }
   }
-  var rowValOgata = 0;
-  for (let i = 0; i < HIROSHIMAGOMISUTECSV.OgatagomiData[0].length; i++) {
-    if (
-      parseInt(HIROSHIMAGOMISUTECSV.OgatagomiData[0][i], 10) ===
-      parseInt(selectedNum, 10)
-    ) {
+
+  // 大型ごみデータ抽出
+  let rowValOgata = 0;
+  const ogataHeader = dataStore.OgatagomiData[0];
+  for (let i = 0; i < ogataHeader.length; i++) {
+    if (Number.parseInt(ogataHeader[i], 10) === Number.parseInt(selectedNum, 10)) {
       rowValOgata = i;
       break;
     }
   }
-  for (let j = 1; j < HIROSHIMAGOMISUTECSV.OgatagomiData.length; j++) {
-    if (HIROSHIMAGOMISUTECSV.OgatagomiData[j][rowValOgata] !== "") {
-      generatedData.push([
-        HIROSHIMAGOMISUTECSV.OgatagomiData[j][rowValOgata],
-        HIROSHIMAGOMISUTECSV.OgatagomiData[j][0],
-        "TRUE"
-      ]);
+
+  for (let j = 1; j < dataStore.OgatagomiData.length; j++) {
+    const row = dataStore.OgatagomiData[j];
+    const dateStr = row[0];
+    const gomiNameOgata = row[rowValOgata];
+    if (gomiNameOgata) {
+      events.push({ summary: gomiNameOgata, dateStr });
     }
   }
 
-  var bom = new Uint8Array([0xef, 0xbb, 0xbf]);
+  // iCalendar (.ics) テキスト生成
+  const icsData = generateICS(events);
 
-  var csvData = generatedData
-    .map(function(l) {
-      return l.join(",");
-    })
-    .join("\r\n");
+  // Blob 作成
+  const blob = new Blob([icsData], { type: "text/calendar;charset=utf-8" });
+  const fileName = "GomiCalendar.ics";
 
-  var blob = new Blob([bom, csvData], {
-    type: "text/csv"
-  });
+  // ダウンロードリンクの動的生成と自動クリーンアップ
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = fileName;
+  a.style.display = "none";
+  document.body.append(a);
+  a.click();
+  a.remove();
+  
+  // メモリ解放
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+}
 
-  if (window.navigator.msSaveBlob) {
-    window.navigator.msSaveBlob(blob, "GomiCalendar.csv");
-    window.navigator.msSaveOrOpenBlob(blob, "GomiCalendar.csv");
-  } else {
-    var $downloadLink = $("#downloadLink");
-    $downloadLink.attr("href", window.URL.createObjectURL(blob));
-    $downloadLink[0].click();
-  }
+// DOM構築完了後にイベントを登録
+document.addEventListener("DOMContentLoaded", () => {
+  const selectWard = document.querySelector("#slctWard");
+  const selectChomei = document.querySelector("#slctChomei");
+  const btnGenerate = document.querySelector("#btnGenerate");
+
+  selectWard?.addEventListener("change", handleWardChange);
+  selectChomei?.addEventListener("change", handleChomeiChange);
+  btnGenerate?.addEventListener("click", handleGenerate);
 });

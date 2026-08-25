@@ -3,123 +3,108 @@
 
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title>HiroshimaGomiSuteCSV</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,700" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>広島市ごみ収集日カレンダー作成ツール (HiroshimaGomiSute)</title>
+    <meta name="description" content="広島市のごみ収集日をお使いのスマホやパソコンのカレンダー（GoogleカレンダーやiPhone等）にまとめて追加できるファイル(.ics)を無料で作成・ダウンロードできます。">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="lit.css">
-    <script async defer src="https://buttons.github.io/buttons.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <link rel="stylesheet" href="main.css">
-    <script async defer src="main.js"></script>
-    <script language="javascript">
-        let userAgent = window.navigator.userAgent.toLowerCase();
-        if ( userAgent.indexOf( 'msie' ) !== -1 || userAgent.indexOf( 'trident' ) !== -1 ) {
-            if(window.confirm('当サイトはInternet Explorerに対応しておりません。本サイトを閲覧するためにはGoogle Chrome,Mozilla Firefox等のモダンなブラウザをご利用ください(無料)。対応ブラウザのダウンロードページに移動しますか？')==true) {
-                location.href="https://www.google.com/intl/ja/chrome/";
-            }
-        } 
-    </script>
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
+    <script type="module" src="main.js"></script>
 </head>
 
 <body class="m0">
     <div class="c">
         <header class="mb3">
-            <h1 class="tc mb0">HiroshimaGomiSuteCSV</h1>
-            <h5 class="tc mb1">広島市のごみ捨てカレンダーを Google Calendar に登録できる形式（.csv）にする WEB サービスです。
-            </h5>
+            <h1 class="tc mb0">広島市ごみ収集日カレンダー</h1>
+            <p class="tc mb1">
+                広島市のごみ収集日程を、スマホやパソコンのカレンダー（Google カレンダーや iPhone カレンダーなど）へ簡単にまとめて登録できる便利な無料ツールです。
+            </p>
             <div class="tc">
                 <a class="github-button" href="https://github.com/gitIshmr/HiroshimaGomiSuteCSV" data-icon="octicon-star" data-size="large"
                     data-show-count="true" aria-label="gitIshmr/HiroshimaGomiSuteCSV">Star</a>
             </div>
             <hr class="margin-b">
         </header>
-        <p>広島市環境局が公開している家庭ごみ収集日程表のcsvデータからお住まいの地域のデータをダウンロードしていただき、以下のフォームからアップロードするだけでGoogle Calendar に登録できる形式に変換できます。
-        </p>
-        <div class="card">
-            <h4>Step1：必要なデータのダウンロード・アップロード</h4>
-            <p><a href="https://hiroshima-opendata.dataeye.jp/resources/9971">広島広域都市圏・広島県オープンデータポータルサイト</a>のWEBサイトから、家庭ごみ収集日程表のZIPファイルをダウンロード・展開してください。<br>                展開後のフォルダからお住まいの区のファイルを取り出してください。
-            </p>
-            <p>例）広島市西区にお住まいの場合に必要なファイル</p>
-            <ul>
-                <li>家庭ごみ収集日のファイル：1-4家庭ごみ収集日（西区）.csv</li>
-                <li>大型ごみ収集日のファイル：2-4大型ごみ収集日（西区）.csv</li>
-                <li>町名のファイル：3-4西区町名.csv</li>
-            </ul>
-            <p>下の3つの入力欄に取得したデータをアップロードしてください。</p>
-            <div class="c">
-                <p>
-                    家庭ごみ収集日のデータ<br>
-                    <input class="card w-100" type="file" name="select1" id="inptKateigomi">
-                </p>
-                <p>
-                    大型ごみ収集日のデータ<br>
-                    <input class="card w-100" type="file" name="select2" id="inptOgatagomi">
-                </p>
-                <p>
-                    町名のデータ<br>
-                    <input class="card w-100" type="file" name="select3" id="inptChomei">
-                </p>
 
-            </div>
-            <button class="btn primary w-100" id="btnUpload">データをアップロード</button>
-        </div>
-        <div class="card">
-            <h4>Step2：町名を選択</h4>
-            <p>お住まいの町名を選択してください。</p>
-            <div class="c">
-                <select class="card w-100" id="slctChomei"></select>
-            </div>
-            <button class="btn primary w-100" id="btnGenerate">この町のデータを生成</button>
-            <a id="downloadLink" download="GomiCalendar.csv" href="#">ダウンロードリンク</a>
-        </div>
+        <main>
+            <p class="tc mb3">お住まいの<strong>「区」</strong>と<strong>「町名」</strong>を選ぶだけで、ごみ収集日のカレンダーファイル（.ics形式）をすぐにダウンロードできます。</p>
+
+            <section class="card mb2" aria-labelledby="step1-title">
+                <h2 id="step1-title" class="h4">ステップ 1：お住まいの「区」を選ぶ</h2>
+                <p>ご住所の区を選択してください。</p>
+                <div class="c">
+                    <label for="slctWard" class="sr-only">区を選択</label>
+                    <select class="card w-100" id="slctWard" aria-label="お住まいの区を選択">
+                        <option value="">区を選択してください</option>
+                        <option value="naka">中区</option>
+                        <option value="higashi">東区</option>
+                        <option value="minami">南区</option>
+                        <option value="nishi">西区</option>
+                        <option value="asaminami">安佐南区</option>
+                        <option value="asakita">安佐北区</option>
+                        <option value="aki">安芸区</option>
+                        <option value="saeki">佐伯区</option>
+                    </select>
+                </div>
+            </section>
+
+            <section class="card mb2" aria-labelledby="step2-title">
+                <h2 id="step2-title" class="h4">ステップ 2：お住まいの「町名」を選んでダウンロード</h2>
+                <p>町名を選択すると、カレンダー作成ボタンが押せるようになります。</p>
+                <div class="c">
+                    <label for="slctChomei" class="sr-only">町名を選択</label>
+                    <select class="card w-100" id="slctChomei" disabled aria-label="お住まいの町名を選択">
+                        <option value="">先に「区」を選択してください</option>
+                    </select>
+                </div>
+                <button type="button" class="btn primary w-100 mt2" id="btnGenerate" disabled>ごみ収集カレンダー（.ics）を保存する</button>
+            </section>
+        </main>
+
         <hr class="margin-t-b">
         <footer>
-            <h3>Googleカレンダーへのcsvの読み込み・このツールについての情報・著作権表示・ライセンスなど</h3>
-            <div class="card">
-                <h4>Googleカレンダーへのcsvの読み込み</h4>
+            <h3>カレンダーへの登録方法・ご利用案内</h3>
+            <section class="card mb2">
+                <h4>カレンダーアプリへの追加手順</h4>
                 <p>
-                    下記のGoogleカレンダーのヘルプをご覧ください。
+                    ダウンロードしたファイル（<code>GomiCalendar.ics</code>）をお使いのカレンダーアプリに取り込んでください。
                 </p>
-                <p>
-                    <a href="https://support.google.com/calendar/answer/37118?hl=ja">https://support.google.com/calendar/answer/37118?hl=ja</a>
-                </p>
-            </div>
-            <div class="card">
+                <ul>
+                    <li><strong>iPhone / iPad / Mac の場合：</strong>ダウンロードした <code>GomiCalendar.ics</code> ファイルをタップして開くだけで、そのまま「カレンダー」アプリに追加できます。</li>
+                    <li><strong>Google カレンダーの場合：</strong>パソコンで Google カレンダーを開き、設定画面の「インポート/エクスポート」からダウンロードしたファイルを読み込んでください。（<a href="https://support.google.com/calendar/answer/37118?hl=ja" target="_blank" rel="noopener noreferrer">Google公式ヘルプはこちら</a>）</li>
+                </ul>
+            </section>
+            <section class="card mb2">
                 <h4>このツールについて</h4>
                 <p>
-                    広島に引っ越して以来、ゴミ収集日を覚えることができなかった自分のために作った個人用ツールです。<br> 同じようにごみ収集日を覚えられない人がいたらと思い、公開しました。
+                    広島市が公開しているオープンデータ（家庭ごみ・大型ごみ収集日程表）をもとに、カレンダー用データを作成する個人開発の無料ツールです。
                 </p>
+                <ul>
+                    <li>本ツールの利用により生じたトラブルや損害等について、制作者は一切の責任を負いかねます。あらかじめご了承ください。</li>
+                    <li>日程データには万全を期していますが、年末年始など特別な収集日の変更については、広島市の公式広報やウェブサイトも併せてご確認ください。</li>
+                </ul>
+            </section>
+            <section class="card mb2">
+                <h4>データ出典・著作権表示</h4>
                 <p>
-                    個人用ツールのため、以下の点に了承いただいて、ご使用ください。
-                    <ul>
-                        <li>このツールに起因して発生したトラブルや損害等について作者は一切責任を負いません。</li>
-                        <li>不備がないように努めていますが、生成したデータに誤りがあるかもしれません。</li>
-                        <li>広島市環境局が提供してくださっているデータの形式が変わると、正しくデータが出力できなくなる可能性があります。</li>
-                    </ul>
+                    本ツールは、広島市環境局が公開している公式オープンデータをもとに作成されています。
                 </p>
-            </div>
-            <div class="card">
-                <h4>著作権表示</h4>
+                <ul>
+                    <li>データ提供元：<a href="https://hiroshima-opendata.dataeye.jp/resources/9971" target="_blank" rel="noopener noreferrer">広島広域都市圏・広島県オープンデータポータルサイト</a></li>
+                    <li>利用規約：<a href="https://www.city.hiroshima.lg.jp/soshiki/16/11807.html" target="_blank" rel="noopener noreferrer">広島市オープンデータ利用規約</a> (CC BY 4.0)</li>
+                </ul>
+            </section>
+            <section class="card">
+                <h4>ライセンス・著作権</h4>
                 <p>
-                    このツールは、広島市環境局が公開しているデータをもとにGoogle Calendar用のファイルを生成します。<br> 上記データの公開については下記のサイトをご覧ください。
-                    <ul>
-                        <li>配布元サイト：<a href="https://www.city.hiroshima.lg.jp/site/opendata/13797.html">家庭ごみ収集日程表</a>
-                        </li>
-                        <li>広島市オープンデータ利用規約：<a href="https://www.city.hiroshima.lg.jp/soshiki/16/11807.html">広島市オープンデータ利用規約</a>
-                        </li>
-                        <li>著作権表示の規定：<a href="https://creativecommons.org/licenses/by/4.0/legalcode.ja ">CC－BY(表示)の規定</a>
-                        </li>
-                    </ul>
+                    &copy; 2018-2026 gitIshmr. MIT License.
                 </p>
-            </div>
-            <div class="card">
-                <h4>ライセンス</h4>
-                <p>
-                    本アプリの著作権はgitIshmrに帰属します。
-                </p>
-            </div>
-            <small>&copy; 2018 gitIshmr.</small>
+            </section>
         </footer>
     </div>
 </body>
+
+</html>
