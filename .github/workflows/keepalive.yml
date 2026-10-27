@@ -1,0 +1,37 @@
+name: Keepalive Workflow
+
+on:
+  schedule:
+    # 毎週日曜日 UTC 00:00 (JST 09:00) にチェック
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Check inactivity and create keepalive commit
+        run: |
+          LAST_COMMIT_DATE=$(git log -1 --format=%ct)
+          CURRENT_DATE=$(date +%s)
+          DAYS_SINCE_LAST_COMMIT=$(( (CURRENT_DATE - LAST_COMMIT_DATE) / 86400 ))
+
+          echo "Days since last commit: ${DAYS_SINCE_LAST_COMMIT} days"
+
+          if [ $DAYS_SINCE_LAST_COMMIT -ge 45 ]; then
+            echo "45 days or more have passed since last commit. Creating a keepalive commit..."
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "chore: keep scheduled workflows active [skip ci]"
+            git push
+          else
+            echo "Repository has recent activity (${DAYS_SINCE_LAST_COMMIT} days ago). No action required."
+          fi
